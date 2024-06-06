@@ -97,6 +97,7 @@ class Server():
             logging.info(f"Server is listening on {self.host}:{self.port}...")
             self.conn, self.addr = self.s.accept()
             logging.info(f"Connected by {self.addr}")
+            self.send_voice("你好，我们可以对话了！")
             self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
             while True:
                 try:
