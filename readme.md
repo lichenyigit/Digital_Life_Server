@@ -7,7 +7,7 @@ For other part of the project, please refer to:
 ## Getting stuffs ready to roll:
 ### Clone this repo
 ```bash
-git clone https://github.com/zixiiu/Digital_Life_Server.git --recursive
+git clone https://github.com/lichenyigit/Digital_Life_Server.git --recursive
 ```
 ### Install prerequisites
 1. install pytorch
