@@ -63,7 +63,7 @@ class Server():
         self.conn = None
         logging.info('Initializing Server...')
         self.host = socket.gethostbyname(socket.gethostname())
-        self.port = 8888
+        self.port = 8800
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 10240000)
         self.s.bind((self.host, self.port))
@@ -97,9 +97,10 @@ class Server():
             logging.info(f"Server is listening on {self.host}:{self.port}...")
             self.conn, self.addr = self.s.accept()
             logging.info(f"Connected by {self.addr}")
-            self.send_voice("你好，我们可以对话了！")
-            self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
-            while True:
+            # self.send_voice("你好，我们可以对话了")
+            try:
+              self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
+              while True:
                 try:
                     file = self.__receive_file()
                     # print('file received: %s' % file)
@@ -135,6 +136,11 @@ class Server():
                     logging.error(e.__str__())
                     logging.error(traceback.format_exc())
                     break
+            except Exception as e:  
+              logging.error(e.__str__())
+              logging.error(traceback.format_exc())
+              break
+            
 
     def notice_stream_end(self):
         time.sleep(0.5)
