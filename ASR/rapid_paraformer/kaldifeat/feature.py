@@ -7,6 +7,9 @@ from scipy.fftpack import dct
 def sliding_window(x, window_size, window_shift):
     shape = x.shape[:-1] + (x.shape[-1] - window_size + 1, window_size)
     strides = x.strides + (x.strides[-1],)
+    if shape[0] <= 0:
+        raise ValueError(f"Invalid shape computed for sliding window: {shape}. Check window_size and window_shift parameters.")
+    
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)[::window_shift]
 
 
@@ -114,6 +117,8 @@ def extract_window(waveform, blackman_coeff, dither, window_size, window_shift,
             waveform,
             waveform[:-(offset + num_samples_ - num_samples + 1):-1]
         ])
+    if len(waveform) < window_size:
+        raise ValueError("The waveform length is less than the window size.")
     frames = sliding_window(waveform, window_size=window_size, window_shift=window_shift)
     frames = frames.astype(dtype)
     log_enery = np.empty(frames.shape[0], dtype=dtype)
