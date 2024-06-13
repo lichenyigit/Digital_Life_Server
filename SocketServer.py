@@ -30,6 +30,7 @@ file_handler.setLevel(logging.INFO)
 console_logger.addHandler(file_handler)
 console_logger.addHandler(console_handler)
 
+initSign=0#初始化标识
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -97,13 +98,19 @@ class Server():
             logging.info(f"Server is listening on {self.host}:{self.port}...")
             self.conn, self.addr = self.s.accept()
             logging.info(f"Connected by {self.addr}")
-            # self.send_voice("你好，我准备好了")
+            
             try:
               self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
               while True:
+                global initSign  # 声明为全局变量
+                if initSign==0:
+                    initSign=1
+                    logging.info('你好，我准备好了')
+                    self.send_voice("你好，我准备好了")
+                    self.notice_stream_end()
                 try:
                     file = self.__receive_file()
-                    # print('file received: %s' % file)
+                    print('file received: %s' % file)
                     with open(self.tmp_recv_file, 'wb') as f:
                         f.write(file)
                         logging.info('WAV file received and saved.')
@@ -116,25 +123,29 @@ class Server():
                     else:
                         resp_text = self.chat_gpt.ask(ask_text)
                         self.send_voice(resp_text)
-                        self.notice_stream_end()
+                        self.notice_stream_end()    
                 except revChatGPT.typings.APIConnectionError as e:
                     logging.error(e.__str__())
                     logging.info('API rate limit exceeded, sending: %s' % GPT.tune.exceed_reply)
                     self.send_voice(GPT.tune.exceed_reply, 2)
                     self.notice_stream_end()
+                    initSign=0
                 except revChatGPT.typings.Error as e:
                     logging.error(e.__str__())
                     logging.info('Something wrong with OPENAI, sending: %s' % GPT.tune.error_reply)
                     self.send_voice(GPT.tune.error_reply, 1)
                     self.notice_stream_end()
+                    initSign=0
                 except requests.exceptions.RequestException as e:
                     logging.error(e.__str__())
                     logging.info('Something wrong with internet, sending: %s' % GPT.tune.error_reply)
                     self.send_voice(GPT.tune.error_reply, 1)
                     self.notice_stream_end()
+                    initSign=0
                 except Exception as e:
                     logging.error(e.__str__())
                     logging.error(traceback.format_exc())
+                    initSign=0
                     break
             except Exception as e:  
               logging.error(e.__str__())
