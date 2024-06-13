@@ -110,7 +110,7 @@ class Server():
                     self.notice_stream_end()
                 try:
                     file = self.__receive_file()
-                    print('file received: %s' % file)
+                    #print('file received: %s' % file)
                     with open(self.tmp_recv_file, 'wb') as f:
                         f.write(file)
                         logging.info('WAV file received and saved.')
@@ -153,9 +153,17 @@ class Server():
               break
             
 
+    #def notice_stream_end(self):
+    #    time.sleep(0.5)
+    #    self.conn.sendall(b'stream_finished')
     def notice_stream_end(self):
-        time.sleep(0.5)
-        self.conn.sendall(b'stream_finished')
+        try:
+            time.sleep(0.5)
+            self.conn.sendall(b'stream_finished')
+        except ConnectionResetError as e:
+            logging.error(f"Connection reset by peer during send: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error during send: {e}")
 
     def send_voice(self, resp_text, senti_or = None):
         self.tts.read_save(resp_text, self.tmp_proc_file, self.tts.hps.data.sampling_rate)
