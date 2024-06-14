@@ -184,7 +184,7 @@ class Server():
         senddata += b'?!'
         senddata += b'%i' % senti
         # self.conn.sendall(senddata)
-        if self.conn and not self.connection_closed:
+        if self.conn:
             #senddata = message.encode('utf-8')
             self.conn.sendall(senddata)
         else:
