@@ -11,6 +11,8 @@ import requests
 import revChatGPT
 import soundfile
 
+import threading
+
 import GPT.tune
 from utils.FlushingFileHandler import FlushingFileHandler
 from ASR import ASRService
@@ -70,6 +72,8 @@ class Server():
         self.s.bind((self.host, self.port))
         self.tmp_recv_file = 'tmp/server_received.wav'
         self.tmp_proc_file = 'tmp/server_processed.wav'
+        self.timeout = 60#单位秒
+        self.timer = None
 
         ## hard coded character map
         self.char_name = {
@@ -98,6 +102,10 @@ class Server():
             logging.info(f"Server is listening on {self.host}:{self.port}...")
             self.conn, self.addr = self.s.accept()
             logging.info(f"Connected by {self.addr}")
+            
+            #start add by lichenyi 2024年6月13日 23点39分
+            self.start_timer()
+            #end add by lichenyi 2024年6月13日 23点39分
             
             try:
               self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
@@ -178,6 +186,8 @@ class Server():
         self.conn.sendall(senddata)
         time.sleep(0.5)
         logging.info('WAV SENT, size %i' % len(senddata))
+        self.stop_timer() #停止timer
+        self.start_timer()#开始timer
 
     def __receive_file(self):
         file_data = b''
@@ -217,6 +227,26 @@ class Server():
 
         return text
 
+
+    #start add by lcy
+    def start_timer(self):
+        self.timer = threading.Timer(self.timeout, self.close_connection)
+        self.timer.start()
+        logging.info("Start timer");
+
+    def stop_timer(self):
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+            logging.info("Stop timer");
+
+    def close_connection(self):
+        if self.conn:
+            logging.info("Timeout reached, closing connection.")
+            self.conn.close()
+            self.conn = None
+    
+    #end add by lcy
 
 if __name__ == '__main__':
     try:
