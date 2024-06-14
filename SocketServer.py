@@ -183,7 +183,12 @@ class Server():
             senti = self.sentiment.infer(resp_text)
         senddata += b'?!'
         senddata += b'%i' % senti
-        self.conn.sendall(senddata)
+        # self.conn.sendall(senddata)
+        if self.conn and not self.connection_closed:
+            #senddata = message.encode('utf-8')
+            self.conn.sendall(senddata)
+        else:
+            logging.error("Connection is not available for sending data.")
         time.sleep(0.5)
         logging.info('WAV SENT, size %i' % len(senddata))
         self.stop_timer() #停止timer
