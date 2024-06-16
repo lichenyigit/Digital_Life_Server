@@ -68,8 +68,7 @@ class Server():
         self.host = socket.gethostbyname(socket.gethostname())
         self.port = 8800
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #self.s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 10240000)
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # 允许端口复用
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 10240000)
         self.s.bind((self.host, self.port))
         self.tmp_recv_file = 'tmp/server_received.wav'
         self.tmp_proc_file = 'tmp/server_processed.wav'
