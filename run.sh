@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 服务每100分钟重启一次。 启动服务，睡眠10秒之后，检测服务是否启动成功，如果没有启动成功，需要继续重试
 # 服务配置
 SERVICE_CMD="python SocketServer.py --chatVer 3 --APIKey [api-key] --brainwash False --model gpt-3.5-turbo --stream False --character paimon"
 SERVICE_PORT=8800
