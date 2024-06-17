@@ -10,7 +10,6 @@ import librosa
 import requests
 import revChatGPT
 import soundfile
-
 import threading
 
 import GPT.tune
@@ -32,7 +31,6 @@ file_handler.setLevel(logging.INFO)
 console_logger.addHandler(file_handler)
 console_logger.addHandler(console_handler)
 
-initSign=0#初始化标识
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -64,12 +62,19 @@ class Server():
         # SERVER STUFF
         self.addr = None
         self.conn = None
+        # 打印顶部边框
+        logging.info('*' * 24)
+        # 打印中间内容
         logging.info('Initializing Server...')
+        # 打印底部边框
+        logging.info('*' * 24)
+        
         self.host = socket.gethostbyname(socket.gethostname())
         self.port = 8800
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 10240000)
         self.s.bind((self.host, self.port))
+        
         self.tmp_recv_file = 'tmp/server_received.wav'
         self.tmp_proc_file = 'tmp/server_processed.wav'
         self.timeout = 60#单位秒
@@ -80,7 +85,6 @@ class Server():
             'paimon': ['TTS/models/paimon6k.json', 'TTS/models/paimon6k_390k.pth', 'character_paimon', 1],
             'yunfei': ['TTS/models/yunfeimix2.json', 'TTS/models/yunfeimix2_53k.pth', 'character_yunfei', 1.1],
             'catmaid': ['TTS/models/catmix.json', 'TTS/models/catmix_107k.pth', 'character_catmaid', 1.2]
-
         }
 
         # PARAFORMER
@@ -95,6 +99,43 @@ class Server():
         # Sentiment Engine
         self.sentiment = SentimentEngine.SentimentEngine('SentimentEngine/models/paimon_sentiment.onnx')
 
+    #start add by lcy 2024年6月17日 09点45分
+    def start_timer(self):
+        self.timer = threading.Timer(self.timeout, self.disconnect_client)
+        self.timer.start()
+        logging.info("Start timer");
+
+    def reset_timer(self):
+        if self.timer:
+            self.timer.cancel()
+        self.start_timer()
+        logging.info("Reset timer");
+        
+    def disconnect_client(self):
+        if self.conn:
+            logging.info("Disconnecting client due to inactivity.")
+            try:
+                self.conn.shutdown(socket.SHUT_RDWR)
+            except socket.error as e:
+                logging.error(f"Error shutting down connection: {e}")
+            finally:
+                self.conn.close()
+                self.conn = None
+                logging.info("Client disconnected.")
+                #self.reset_server()  # 重置服务器，为新的连接做好准备
+        
+    def reset_server(self):
+        logging.info("Resetting server...")
+        if self.s:
+            self.s.close()
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 10240000)
+        self.s.bind((self.host, self.port))
+        logging.info(f"Server reset and listening on {self.host}:{self.port}")
+        
+    #end
+
+
     def listen(self):
         # MAIN SERVER LOOP
         while True:
@@ -102,23 +143,15 @@ class Server():
             logging.info(f"Server is listening on {self.host}:{self.port}...")
             self.conn, self.addr = self.s.accept()
             logging.info(f"Connected by {self.addr}")
+            self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
+            logging.info('你好，我准备好了')
+            self.send_voice("你好，我准备好了")
+            self.notice_stream_end()
             
-            #start add by lichenyi 2024年6月13日 23点39分
-            self.start_timer()
-            #end add by lichenyi 2024年6月13日 23点39分
-            
-            try:
-              self.conn.sendall(b'%s' % self.char_name[args.character][2].encode())
-              while True:
-                global initSign  # 声明为全局变量
-                if initSign==0:
-                    initSign=1
-                    logging.info('你好，我准备好了')
-                    self.send_voice("你好，我准备好了")
-                    self.notice_stream_end()
+            while True:
                 try:
                     file = self.__receive_file()
-                    #print('file received: %s' % file)
+                    # print('file received: %s' % file)
                     with open(self.tmp_recv_file, 'wb') as f:
                         f.write(file)
                         logging.info('WAV file received and saved.')
@@ -131,39 +164,30 @@ class Server():
                     else:
                         resp_text = self.chat_gpt.ask(ask_text)
                         self.send_voice(resp_text)
-                        self.notice_stream_end()    
+                        self.notice_stream_end()
                 except revChatGPT.typings.APIConnectionError as e:
                     logging.error(e.__str__())
                     logging.info('API rate limit exceeded, sending: %s' % GPT.tune.exceed_reply)
                     self.send_voice(GPT.tune.exceed_reply, 2)
                     self.notice_stream_end()
-                    initSign=0
                 except revChatGPT.typings.Error as e:
                     logging.error(e.__str__())
                     logging.info('Something wrong with OPENAI, sending: %s' % GPT.tune.error_reply)
                     self.send_voice(GPT.tune.error_reply, 1)
                     self.notice_stream_end()
-                    initSign=0
                 except requests.exceptions.RequestException as e:
                     logging.error(e.__str__())
                     logging.info('Something wrong with internet, sending: %s' % GPT.tune.error_reply)
                     self.send_voice(GPT.tune.error_reply, 1)
                     self.notice_stream_end()
-                    initSign=0
                 except Exception as e:
                     logging.error(e.__str__())
                     logging.error(traceback.format_exc())
-                    initSign=0
-                    break
-            except Exception as e:  
-              logging.error(e.__str__())
-              logging.error(traceback.format_exc())
-              break
-            
+                    break;
+                finally:
+                    self.reset_timer()  # 重置定时器
+                    
 
-    #def notice_stream_end(self):
-    #    time.sleep(0.5)
-    #    self.conn.sendall(b'stream_finished')
     def notice_stream_end(self):
         try:
             time.sleep(0.5)
@@ -183,30 +207,27 @@ class Server():
             senti = self.sentiment.infer(resp_text)
         senddata += b'?!'
         senddata += b'%i' % senti
-        # self.conn.sendall(senddata)
         if self.conn:
-            #senddata = message.encode('utf-8')
             self.conn.sendall(senddata)
         else:
             logging.error("Connection is not available for sending data.")
         time.sleep(0.5)
         logging.info('WAV SENT, size %i' % len(senddata))
-        self.stop_timer() #停止timer
-        self.start_timer()#开始timer
 
     def __receive_file(self):
         file_data = b''
         while True:
-            data = self.conn.recv(1024)
-            # print(data)
-            self.conn.send(b'sb')
-            if data[-2:] == b'?!':
-                file_data += data[0:-2]
-                break
-            if not data:
-                # logging.info('Waiting for WAV...')
-                continue
-            file_data += data
+            if self.conn:
+                data = self.conn.recv(1024)
+                # print(data)
+                self.conn.send(b'sb')
+                if data[-2:] == b'?!':
+                    file_data += data[0:-2]
+                    break
+                if not data:
+                    # logging.info('Waiting for WAV...')
+                    continue
+                file_data += data
 
         return file_data
 
@@ -232,26 +253,6 @@ class Server():
 
         return text
 
-
-    #start add by lcy
-    def start_timer(self):
-        self.timer = threading.Timer(self.timeout, self.close_connection)
-        self.timer.start()
-        logging.info("Start timer");
-
-    def stop_timer(self):
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-            logging.info("Stop timer");
-
-    def close_connection(self):
-        if self.conn:
-            logging.info("Timeout reached, closing connection.")
-            self.conn.close()
-            self.conn = None
-    
-    #end add by lcy
 
 if __name__ == '__main__':
     try:
