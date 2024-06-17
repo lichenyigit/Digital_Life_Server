@@ -48,7 +48,11 @@ git clone https://github.com/lichenyigit/Digital_Life_Server.git --recursive
    self.net_g = SynthesizerTrn(...).cpu()
    ```
 
-   
+   ```
+    ## 查找并kill 端口
+   kill -9 $(netstat -tunlp | grep ":8800 " | awk '{print $7}' | cut -d'/' -f1)
+   ```
+
 
    > 到这里，项目构建完毕🥰
 
