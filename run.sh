@@ -30,7 +30,7 @@ start_service() {
     else
       echo "Port ${SERVICE_PORT} is in use by PID ${PID}. Killing process..."
       kill -9 $PID
-      sleep 10  # 确保端口释放
+      sleep 60  # 确保端口释放
     fi
   done
 }

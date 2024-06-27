@@ -116,6 +116,10 @@ class Server():
         if self.conn:
             logging.info("Disconnecting client due to inactivity.************")
             try:
+                self.send_voice("哼！ 不理我，我要离开了")
+                self.notice_stream_end()
+                time.sleep(4.5)
+                
                 self.conn.shutdown(socket.SHUT_RDWR)
             except socket.error as e:
                 logging.error(f"Error shutting down connection: {e}")
@@ -123,7 +127,7 @@ class Server():
                 self.conn.close()
                 self.conn = None
                 logging.info("Client disconnected.**************")
-                #self.reset_server()  # 重置服务器，为新的连接做好准备
+                
         
     def reset_server(self):
         logging.info("Resetting server...")
