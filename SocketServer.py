@@ -1,3 +1,4 @@
+# encoding: utf-8
 import argparse
 import os
 import socket
@@ -77,7 +78,7 @@ class Server():
         
         self.tmp_recv_file = 'tmp/server_received.wav'
         self.tmp_proc_file = 'tmp/server_processed.wav'
-        self.timeout = 60#单位秒
+        self.timeout = 120#单位秒
         self.timer = None
 
         ## hard coded character map
@@ -113,7 +114,7 @@ class Server():
         
     def disconnect_client(self):
         if self.conn:
-            logging.info("Disconnecting client due to inactivity.")
+            logging.info("Disconnecting client due to inactivity.************")
             try:
                 self.conn.shutdown(socket.SHUT_RDWR)
             except socket.error as e:
@@ -121,7 +122,7 @@ class Server():
             finally:
                 self.conn.close()
                 self.conn = None
-                logging.info("Client disconnected.")
+                logging.info("Client disconnected.**************")
                 #self.reset_server()  # 重置服务器，为新的连接做好准备
         
     def reset_server(self):
@@ -186,7 +187,7 @@ class Server():
                     break;
                 finally:
                     self.reset_timer()  # 重置定时器
-                    
+            self.reset_timer()  # 重置定时器        
 
     def notice_stream_end(self):
         try:

@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# 服务每100分钟重启一次。 启动服务，睡眠10秒之后，检测服务是否启动成功，如果没有启动成功，需要继续重试
 # 服务配置
-SERVICE_CMD="python SocketServer.py --chatVer 3 --APIKey [api-key] --brainwash False --model gpt-3.5-turbo --stream False --character paimon"
+SERVICE_CMD="python SocketServer.py --chatVer 3 --APIKey [] --brainwash False --model gpt-3.5-turbo --stream False --character paimon"
 SERVICE_PORT=8800
-RESTART_INTERVAL=1800  # 100分钟，单位：秒  6000-100分钟  300-5分钟
+RESTART_INTERVAL=1800  # 100分钟，单位：秒  6000-100分钟 1800-30分钟  300-5分钟
 
 # 检查端口是否被占用并返回对应的PID
 get_port_pid() {
@@ -31,19 +30,20 @@ start_service() {
     else
       echo "Port ${SERVICE_PORT} is in use by PID ${PID}. Killing process..."
       kill -9 $PID
-      sleep 2  # 确保端口释放
+      sleep 10  # 确保端口释放
     fi
   done
 }
 
 # 监控并重启服务
 monitor_service() {
+  start_service
   while true; do
     sleep ${RESTART_INTERVAL}
     echo "Restarting service..."
     kill ${SERVICE_PID}
     wait ${SERVICE_PID} 2>/dev/null
-    start_service
+	start_service
   done
 }
 
@@ -51,5 +51,4 @@ monitor_service() {
 trap "echo 'Stopping service...'; kill ${SERVICE_PID}; wait ${SERVICE_PID}; exit" SIGINT SIGTERM
 
 # 启动服务并监控
-start_service
 monitor_service
