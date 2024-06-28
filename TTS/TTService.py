@@ -37,7 +37,7 @@ class TTService():
             len(symbols),
             self.hps.data.filter_length // 2 + 1,
             self.hps.train.segment_size // self.hps.data.hop_length,
-            **self.hps.model).cuda()
+            **self.hps.model).cpu()
         _ = self.net_g.eval()
         _ = utils.load_checkpoint(model, self.net_g, None)
 
@@ -46,7 +46,7 @@ class TTService():
         stn_tst = get_text(text, self.hps)
         with torch.no_grad():
             x_tst = stn_tst.cuda().unsqueeze(0)
-            x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).cuda()
+            x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).cpu()
             audio = self.net_g.infer(x_tst, x_tst_lengths, noise_scale=.667, noise_scale_w=0.2, length_scale=self.speed)[0][
                 0, 0].data.cpu().float().numpy()
         return audio
